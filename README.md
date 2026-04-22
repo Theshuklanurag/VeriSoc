@@ -1,234 +1,182 @@
-# 🛡️ VeriSOC v3.0 — Supabase + Real DigiLocker Edition
+# VeriSOC — India's Social Media KYC Verification Platform
+
+VeriSOC is a government-grade KYC (Know Your Customer) identity verification platform built for Indian social media users. It eliminates fake accounts by verifying real identities using government-issued documents and AI-powered biometric matching.
 
 ---
 
-## 📦 Installation
+## Features
+
+- **Multi-Document KYC** — Accepts Aadhaar, PAN, Passport, Driving License, and Voter ID
+- **AI Biometric Matching** — Face comparison between government ID photo and live selfie
+- **Google Sign-In** — One-click login via Google OAuth through Supabase
+- **Unique KYC Codes** — Every submission gets a trackable VSC-YYYY-XXXXXX code
+- **Admin Dashboard** — Full review workflow with approve, reject, flag, and CSV export
+- **AI Chatbot** — Powered by Groq (Llama 3.3) with smart fallback mode
+- **Support System** — Users can ask questions, admin answers directly
+- **Real-time Notifications** — Status updates pushed to users instantly
+- **PDPB Compliant** — Designed with India's Personal Data Protection Bill in mind
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | React 18 + Vite |
+| Styling | Custom CSS with CSS Variables |
+| Database | Supabase (PostgreSQL) |
+| Auth | Supabase Auth (Google OAuth) |
+| AI Chat | Groq API (Llama 3.3 70B) |
+| Storage | Supabase Storage + IndexedDB fallback |
+| Deployment | Vercel |
+
+---
+
+## Getting Started
+
+### 1. Clone the repository
 
 ```bash
-# 1. Install all dependencies (React + Supabase SDK)
+git clone https://github.com/Theshuklanurag/VeriSoc.git
+cd VeriSoc
+```
+
+### 2. Install dependencies
+
+```bash
 npm install
-
-# This installs:
-#   react, react-dom            — UI framework
-#   @supabase/supabase-js       — Supabase client (DB + Storage + Realtime)
 ```
 
-Then configure `.env` and run:
-```bash
-npm run dev        # development
-npm run build      # production build
-npm run preview    # preview production build
+### 3. Create your `.env` file
+
+Create a file called `.env` in the root folder:
+
+```
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+VITE_GROQ_API_KEY=your_groq_api_key
 ```
 
----
+- Get Supabase keys from [supabase.com](https://supabase.com) → your project → Settings → API
+- Get Groq key from [console.groq.com](https://console.groq.com)
 
-## 🗄️ PART 1 — Supabase Setup (5 mins)
+### 4. Set up Supabase database
 
-### Step 1: Create Project
-1. Go to [supabase.com](https://supabase.com) → **Start your project** → **New Project**
-2. Name: `verisoc` | Region: **South Asia (Mumbai)** 🇮🇳 | Set database password
-3. Wait ~2 minutes
+Go to your Supabase project → SQL Editor → paste and run the contents of `supabase_schema.sql`
 
-### Step 2: Run the Database Schema
-1. Supabase Dashboard → **SQL Editor** → **New Query**
-2. Open `supabase_schema.sql` from this project
-3. Paste everything → Click **RUN ▶️**
+This creates all required tables and the Google OAuth trigger automatically.
 
-### Step 3: Create Storage Bucket
-1. Dashboard → **Storage** → **New Bucket**
-2. Name: `kyc-documents` | Public: **OFF** (keep private)
-3. Click **Create bucket**
-4. Click **Policies** → **New Policy** → **Full access** (for dev)
+### 5. Enable Google Sign-In (optional)
 
-### Step 4: Get API Keys
-Dashboard → ⚙️ **Settings** → **API** → Copy:
-- **Project URL**: `https://xxxx.supabase.co`
-- **anon public key**: `eyJhbGci...`
+1. Supabase Dashboard → Authentication → Providers → Google → Enable
+2. Copy the Callback URL shown
+3. Go to [console.cloud.google.com](https://console.cloud.google.com) → Credentials → Create OAuth Client ID
+4. Paste the Callback URL under Authorized Redirect URIs
+5. Copy Client ID and Secret back into Supabase → Save
+6. Add `http://localhost:5173` to Supabase → Authentication → URL Configuration → Redirect URLs
 
-### Step 5: Configure `.env`
-```bash
-cp .env.example .env
-```
-```env
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
-
----
-
-## 📁 PART 2 — DigiLocker OAuth (Real API)
-
-DigiLocker is a Government of India service. It uses **OAuth 2.0** — the same standard as "Login with Google". The user logs in on DigiLocker's government website, then gets redirected back to your app with their verified data.
-
-### Why you need a backend (Edge Function)
-OAuth requires a **Client Secret** — a password that must NEVER be in your frontend code (anyone could steal it from the browser). The Supabase Edge Function (`supabase/functions/digilocker-token/`) handles this server-side.
-
-### Step 1: Apply for DigiLocker API Access
-1. Go to [partners.digitallocker.gov.in](https://partners.digitallocker.gov.in)
-2. Register your organization → Apply for API access
-3. After approval (~1-2 weeks), you get:
-   - **Client ID** (safe for frontend)
-   - **Client Secret** (server-side only — NEVER in .env frontend)
-
-> **For testing immediately:** DigiLocker provides a **sandbox** environment. Apply for sandbox access first — it works with test Aadhaar numbers, no real verification needed.
-
-### Step 2: Configure Redirect URI
-In DigiLocker partner portal, add your redirect URI:
-- Dev: `http://localhost:5173/digilocker/callback`
-- Prod: `https://yourdomain.com/digilocker/callback`
-
-Add to `.env`:
-```env
-VITE_DIGILOCKER_CLIENT_ID=your_client_id_here
-VITE_DIGILOCKER_REDIRECT_URI=http://localhost:5173/digilocker/callback
-```
-
-### Step 3: Deploy the Edge Function
-The Client Secret lives here — never touches the browser.
+### 6. Run locally
 
 ```bash
-# Install Supabase CLI
-npm install -g supabase
-
-# Login
-supabase login
-
-# Link to your project
-supabase link --project-ref your-project-id
-
-# Set secrets (server-side only, never in .env)
-supabase secrets set DIGILOCKER_CLIENT_ID=your_client_id
-supabase secrets set DIGILOCKER_CLIENT_SECRET=your_client_secret
-supabase secrets set DIGILOCKER_REDIRECT_URI=http://localhost:5173/digilocker/callback
-
-# Deploy the function
-supabase functions deploy digilocker-token
+npm run dev
 ```
 
-### Step 4: Done!
-The DigiLocker page auto-detects if `VITE_DIGILOCKER_CLIENT_ID` is set:
-- ✅ **Set** → Shows "Login with DigiLocker" button → Redirects to govt portal
-- ⚠️ **Not set** → Falls back to demo/mock mode (OTP simulation)
+Open [http://localhost:5173](http://localhost:5173)
 
-### How the Real OAuth Flow Works
+---
+
+## Admin Access
+
+The admin panel is hidden — accessible via the `● ● ●` link at the bottom of the login page.
 
 ```
-User clicks "Login with DigiLocker"
-         ↓
-Browser redirects → digilocker.gov.in/authorize?client_id=...
-         ↓
-User enters Aadhaar + OTP on GOVERNMENT website (not your app)
-         ↓
-DigiLocker redirects back → yourdomain.com/digilocker/callback?code=AUTH_CODE
-         ↓
-Your frontend sends AUTH_CODE → Supabase Edge Function
-         ↓
-Edge Function calls DigiLocker API with code + SECRET → gets access_token
-         ↓
-Edge Function fetches user profile + documents
-         ↓
-Returns SAFE data to frontend (no secrets exposed)
-         ↓
-User data pre-fills KYC form ✅
+Username: @dmin
+Password: @dmin123
+```
+
+Change these in `src/utils/db.js` in the `AdminAuth.init()` function before deploying.
+
+---
+
+## Deploying to Vercel
+
+1. Push your code to GitHub
+2. Go to [vercel.com](https://vercel.com) → New Project → Import your repo
+3. Add these Environment Variables in Vercel dashboard:
+
+| Variable | Value |
+|---|---|
+| `VITE_SUPABASE_URL` | Your Supabase project URL |
+| `VITE_SUPABASE_ANON_KEY` | Your Supabase anon key |
+| `VITE_GROQ_API_KEY` | Your Groq API key |
+
+4. Click Deploy
+
+After deploying, add your Vercel URL to Supabase → Authentication → URL Configuration → Redirect URLs.
+
+---
+
+## Project Structure
+
+```
+src/
+├── components/
+│   ├── Navbar.jsx        # Navigation bar
+│   ├── Footer.jsx        # Footer
+│   └── Chatbot.jsx       # AI chat + Ask Admin widget
+├── context/
+│   └── AppContext.jsx    # Auth, Toast, Page state
+├── pages/
+│   ├── HomePage.jsx      # Landing page
+│   ├── LoginPage.jsx     # Login with Google OAuth
+│   ├── SignupPage.jsx    # Registration
+│   ├── KycPage.jsx       # 6-step KYC form
+│   ├── DashboardPage.jsx # User dashboard
+│   ├── AdminPage.jsx     # Admin dashboard
+│   ├── AdminLoginPage.jsx
+│   ├── SupportPage.jsx
+│   └── StaticPages.jsx   # About, Contact
+├── utils/
+│   ├── db.js             # All database operations
+│   └── supabase.js       # Supabase client
+└── styles/
+    └── globals.css       # Global styles and design tokens
 ```
 
 ---
 
-## 🤖 PART 3 — Groq AI Chatbot (Optional)
+## KYC Process
 
-```bash
-# Free at: console.groq.com/keys (no credit card)
-```
-```env
-VITE_GROQ_API_KEY=gsk_your_key_here
-```
-Without key → chatbot uses smart local fallback responses.
-
----
-
-## 🔑 Default Credentials
-
-| Role | Username | Password |
-|------|----------|----------|
-| Admin | `VS_ADMIN_2025` | `Secure@KYC#2025` |
-| User | Create via Signup | — |
-
-Admin access: click the tiny `● ● ●` on the Login page.
+1. **Register** — Create account with email and password or Google
+2. **Personal Info** — Name, date of birth, gender, address
+3. **Contact Details** — Phone, city, state, PIN code
+4. **Primary ID** — Choose and enter one government ID
+5. **Secondary ID** — Choose and enter a different government ID
+6. **Upload Documents** — ID proof photo and live selfie
+7. **Submit** — Receive unique VSC code for tracking
+8. **Admin Review** — Approved or rejected within 24-48 hours
 
 ---
 
-## 📁 Project Structure
+## Environment Variables
 
-```
-verisoc/
-├── .env.example                    ← Copy to .env and fill values
-├── package.json                    ← Run `npm install` to install everything
-├── supabase_schema.sql             ← Run this in Supabase SQL Editor
-│
-├── supabase/
-│   └── functions/
-│       └── digilocker-token/
-│           └── index.ts           ← Server-side OAuth token exchange
-│                                     (keeps Client Secret safe)
-│
-└── src/
-    ├── utils/
-    │   ├── supabase.js             ← Supabase client
-    │   ├── digilocker.js           ← OAuth URL builder + callback handler
-    │   └── db.js                   ← All DB operations (Supabase)
-    │
-    ├── pages/
-    │   ├── DigiLockerPage.jsx      ← Real OAuth + mock fallback
-    │   ├── DashboardPage.jsx       ← Realtime subscriptions
-    │   ├── AdminPage.jsx           ← Full admin panel
-    │   ├── SupportPage.jsx         ← Q&A + notifications
-    │   └── ...
-    │
-    └── components/
-        ├── Chatbot.jsx             ← Groq AI + Ask Admin
-        └── Navbar.jsx              ← Live notification badge
-```
+| Variable | Required | Description |
+|---|---|---|
+| `VITE_SUPABASE_URL` | Yes | Your Supabase project URL |
+| `VITE_SUPABASE_ANON_KEY` | Yes | Supabase anon/public key |
+| `VITE_GROQ_API_KEY` | No | Groq API key for AI chat (falls back to smart mode without it) |
 
 ---
 
-## 🗄️ What's in Supabase
+## Important Notes
 
-| Table/Store | What's Stored |
-|-------------|--------------|
-| `users` | All accounts, KYC status, DigiLocker linkage |
-| `kycs` | Full KYC submissions, all ID numbers |
-| `questions` | Support tickets + admin answers |
-| `notifications` | Real-time alerts |
-| `kyc-documents` storage | ID proof images, selfie photos |
-
-**Realtime features:**
-- KYC status change → Dashboard updates instantly (no refresh)
-- Admin answers question → User notified live
-- New notifications → Navbar badge updates live
+- Never commit your `.env` file — it is listed in `.gitignore`
+- The app runs in demo mode (localStorage) if Supabase is not configured
+- Admin credentials should be changed before going live
+- Groq API may not work from localhost due to CORS — it works fine on Vercel
 
 ---
 
-## 🔒 Production Checklist
+## Made by
 
-- [ ] Replace custom password with `supabase.auth.signUp()` (Supabase Auth)
-- [ ] Tighten RLS policies (use `auth.uid()` instead of `true`)
-- [ ] Move to DigiLocker **production** environment (after sandbox testing)
-- [ ] Set proper Storage policies (owner-only access)
-- [ ] Add rate limiting on KYC submissions
-- [ ] Enable [Supabase Vault](https://supabase.com/docs/guides/database/vault) for sensitive data
-
----
-
-## ❓ FAQ
-
-**Q: Can I use DigiLocker without applying for API access?**
-A: No — you need API credentials from the DigiLocker partner portal. Until then, the mock/demo mode works perfectly for development and demos.
-
-**Q: Does `npm install` install Supabase?**
-A: Yes! `@supabase/supabase-js` is in `package.json`. Just run `npm install` and it's ready.
-
-**Q: Why can't I put the DigiLocker Client Secret in `.env`?**
-A: Vite exposes all `VITE_*` variables to the browser — anyone can see them in DevTools. The Client Secret must stay server-side (the Edge Function).
-
-**Q: What Aadhaar numbers work in sandbox?**
-A: DigiLocker sandbox provides test Aadhaar numbers in their developer documentation.
+Anurag Shukla — VeriSOC Project
