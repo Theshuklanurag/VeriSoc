@@ -1,8 +1,8 @@
 // ─── ABOUT PAGE ───────────────────────────────────────────────────────────────
 
-import { usePage } from "../context/AppContext";
+import { usePage, useToast } from "../context/AppContext";
 import { useState } from "react";
-import { useToast } from "../context/AppContext";
+import { QuestionDB } from "../utils/db";
 
 const TEAM = [
   {
@@ -38,14 +38,7 @@ export function AboutPage() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 24, marginBottom: 80 }}>
           {TEAM.map((t, i) => (
             <div className="card" key={t.name} style={{ textAlign: "center", padding: 36 }}>
-              <div style={{
-                width: 72, height: 72, borderRadius: "50%",
-                background: `linear-gradient(135deg, ${i === 0 ? "var(--gold), var(--gold2)" : i === 1 ? "var(--green), var(--green2)" : "var(--accent3), var(--gold)"})`,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 800, color: "#0a0f0c",
-                margin: "0 auto 18px",
-                border: "3px solid var(--border2)",
-              }}>
+              <div style={{ width: 72, height: 72, borderRadius: "50%", background: `linear-gradient(135deg, ${i === 0 ? "var(--gold), var(--gold2)" : i === 1 ? "var(--green), var(--green2)" : "var(--accent3), var(--gold)"})`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 800, color: "#0a0f0c", margin: "0 auto 18px", border: "3px solid var(--border2)" }}>
                 {t.initials}
               </div>
               <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700, color: "var(--cream)", marginBottom: 4 }}>{t.name}</div>
@@ -59,7 +52,6 @@ export function AboutPage() {
           ))}
         </div>
 
-        {/* Mission */}
         <div style={{ borderTop: "1px solid var(--border)", paddingTop: 56 }}>
           <div className="section-header-center" style={{ marginBottom: 40 }}>
             <span className="section-eyebrow">The Vision</span>
@@ -67,10 +59,10 @@ export function AboutPage() {
           </div>
           <div className="card-grid">
             {[
-              ["🔬", "ib-gold",  "Yukti 2025 Project",   "VeriSOC was built for Yukti 2025, addressing India's rising fake account problem on social platforms."],
-              ["🇮🇳", "ib-green", "Built for Bharat",     "Supports Aadhaar, PAN, Passport, Driving License and Voter ID — covering all major Indian identity documents."],
-              ["🌐", "ib-earth", "Scalable Vision",       "Designed to plug into any social media platform, fintech app, or e-commerce site requiring verified Indian users."],
-              ["⚖️", "ib-blue",  "PDPB Aligned",         "Built with India's Personal Data Protection Bill principles — data minimization, consent, and transparency."],
+              ["🔬", "ib-gold",  "Yukti 2025 Project",  "VeriSOC was built for Yukti 2025, addressing India's rising fake account problem on social platforms."],
+              ["🇮🇳", "ib-green", "Built for Bharat",    "Supports Aadhaar, PAN, Passport, Driving License and Voter ID — covering all major Indian identity documents."],
+              ["🌐", "ib-earth", "Scalable Vision",      "Designed to plug into any social media platform, fintech app, or e-commerce site requiring verified Indian users."],
+              ["⚖️", "ib-blue",  "PDPB Aligned",        "Built with India's Personal Data Protection Bill principles — data minimization, consent, and transparency."],
             ].map(([icon, cls, title, desc]) => (
               <div className="card" key={title}>
                 <div className={`icon-badge ${cls}`}>{icon}</div>
@@ -93,12 +85,24 @@ export function ContactPage() {
   const [loading, setLoading] = useState(false);
   const handle = e => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
+  // Bug 19 fixed: actually saves to QuestionDB instead of doing nothing
   const submit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    await new Promise(r => setTimeout(r, 800));
-    addToast("Message sent! We'll respond within 24 hours.", "success");
-    setForm({ name: "", email: "", subject: "", message: "" });
+    try {
+      const question = `[Contact Form] Subject: ${form.subject}\n\nFrom: ${form.name} (${form.email})\n\n${form.message}`;
+      await QuestionDB.ask(
+        form.email.split("@")[0] || "contact",
+        form.name,
+        question,
+        "general"
+      );
+      addToast("Message sent! We'll respond within 24 hours.", "success");
+      setForm({ name: "", email: "", subject: "", message: "" });
+    } catch (err) {
+      addToast("Failed to send message. Please try again.", "error");
+      console.error(err);
+    }
     setLoading(false);
   };
 
@@ -112,7 +116,6 @@ export function ContactPage() {
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: 48, alignItems: "flex-start" }}>
-          {/* INFO */}
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             {[
               ["📧", "Email", "support@verisoc.in"],
@@ -122,12 +125,7 @@ export function ContactPage() {
               ["🔒", "Security", "security@verisoc.in"],
             ].map(([icon, label, value]) => (
               <div key={label} style={{ display: "flex", gap: 16, alignItems: "center" }}>
-                <div style={{
-                  width: 44, height: 44, borderRadius: 10,
-                  background: "var(--surface2)", border: "1px solid var(--border)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 18, flexShrink: 0,
-                }}>{icon}</div>
+                <div style={{ width: 44, height: 44, borderRadius: 10, background: "var(--surface2)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{icon}</div>
                 <div>
                   <div style={{ fontSize: 11, fontFamily: "var(--font-mono)", color: "var(--text3)", letterSpacing: 1.5, textTransform: "uppercase" }}>{label}</div>
                   <div style={{ fontSize: 15, fontWeight: 500, color: "var(--cream)", marginTop: 3 }}>{value}</div>
@@ -136,7 +134,6 @@ export function ContactPage() {
             ))}
           </div>
 
-          {/* FORM */}
           <div className="card" style={{ padding: "36px 32px" }}>
             <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 18 }}>
               <div className="form-grid">

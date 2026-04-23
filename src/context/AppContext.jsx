@@ -5,11 +5,25 @@ import { SessionDB } from "../utils/db";
 
 const AuthContext = createContext(null);
 
+const SESSION_MAX_DAYS = 7;
+
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => SessionDB.get());
+  const [user, setUser] = useState(() => {
+    // Bug 10 fixed: check session expiry on load
+    const stored = SessionDB.get();
+    if (!stored) return null;
+    if (stored.loginAt) {
+      const days = (Date.now() - new Date(stored.loginAt).getTime()) / (1000 * 60 * 60 * 24);
+      if (days > SESSION_MAX_DAYS) {
+        SessionDB.clear();
+        return null;
+      }
+    }
+    return stored;
+  });
 
   const login = useCallback((userData) => {
-    const safe = SessionDB.set(userData);
+    const safe = SessionDB.set({ ...userData, loginAt: new Date().toISOString() });
     setUser(safe);
     return safe;
   }, []);

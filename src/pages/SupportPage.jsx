@@ -7,7 +7,7 @@ export default function SupportPage() {
   const { navigate } = usePage();
   const [questions, setQuestions] = useState([]);
   const [notifications, setNotifications] = useState([]);
-  const [tab, setTab] = useState("questions"); // questions | notifications
+  const [tab, setTab] = useState("questions");
   const [loading, setLoading] = useState(true);
 
   const refresh = async () => {
@@ -41,11 +41,11 @@ export default function SupportPage() {
   );
 
   const unreadCount = notifications.filter(n => !n.read).length;
-
   const statusColor = { open: "var(--warn)", answered: "var(--success)", closed: "var(--text3)" };
-  const statusIcon = { open: "⏳", answered: "✅", closed: "🔒" };
+  const statusIcon  = { open: "⏳", answered: "✅", closed: "🔒" };
 
-  const catLabels = { general: "General", kyc: "KYC Process", documents: "Documents", digilocker: "DigiLocker", status: "Status Check", technical: "Technical" };
+  // Bug 7 fixed: removed digilocker from catLabels
+  const catLabels = { general: "General", kyc: "KYC Process", documents: "Documents", status: "Status Check", technical: "Technical" };
 
   return (
     <div className="page-wrapper">
@@ -55,18 +55,12 @@ export default function SupportPage() {
           <h2 style={{ fontFamily: "var(--font-display)", fontSize: 30, fontWeight: 800, color: "var(--cream)" }}>Questions & Notifications</h2>
         </div>
 
-        {/* Tabs */}
         <div style={{ display: "flex", gap: 4, marginBottom: 24, background: "var(--surface2)", borderRadius: 12, padding: 4, width: "fit-content" }}>
           {[
             ["questions", `📩 My Questions (${questions.length})`],
             ["notifications", `🔔 Notifications${unreadCount > 0 ? ` (${unreadCount})` : ""}`],
           ].map(([t, label]) => (
-            <button key={t} onClick={() => setTab(t)} style={{
-              padding: "10px 20px", borderRadius: 8, border: "none", cursor: "pointer",
-              fontFamily: "var(--font-body)", fontWeight: 600, fontSize: 13, transition: "all 0.2s",
-              background: tab === t ? "var(--gold)" : "transparent",
-              color: tab === t ? "#0a0f0c" : "var(--text2)",
-            }}>{label}</button>
+            <button key={t} onClick={() => setTab(t)} style={{ padding: "10px 20px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "var(--font-body)", fontWeight: 600, fontSize: 13, transition: "all 0.2s", background: tab === t ? "var(--gold)" : "transparent", color: tab === t ? "#0a0f0c" : "var(--text2)" }}>{label}</button>
           ))}
         </div>
 
@@ -74,7 +68,6 @@ export default function SupportPage() {
           <div style={{ textAlign: "center", padding: 60, color: "var(--text2)" }}>Loading...</div>
         ) : (
           <>
-            {/* QUESTIONS TAB */}
             {tab === "questions" && (
               <div>
                 {questions.length === 0 ? (
@@ -85,14 +78,13 @@ export default function SupportPage() {
                   </div>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                    {questions.map((q) => (
+                    {questions.map(q => (
                       <div key={q.id} className="card" style={{ border: q.status === "answered" ? "1px solid rgba(79,192,110,0.3)" : "1px solid var(--border)" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
                           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                            <span style={{
-                              padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600,
-                              background: "var(--surface2)", color: "var(--gold)", border: "1px solid var(--border)",
-                            }}>{catLabels[q.category] || q.category}</span>
+                            <span style={{ padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600, background: "var(--surface2)", color: "var(--gold)", border: "1px solid var(--border)" }}>
+                              {catLabels[q.category] || q.category}
+                            </span>
                             <span style={{ fontSize: 12, color: statusColor[q.status], fontWeight: 600 }}>
                               {statusIcon[q.status]} {q.status?.toUpperCase()}
                             </span>
@@ -101,25 +93,15 @@ export default function SupportPage() {
                             {new Date(q.createdAt).toLocaleDateString("en-IN")}
                           </span>
                         </div>
-
-                        <div style={{ fontWeight: 600, color: "var(--cream)", marginBottom: q.answer ? 12 : 0, fontSize: 15 }}>
-                          {q.question}
-                        </div>
-
+                        <div style={{ fontWeight: 600, color: "var(--cream)", marginBottom: q.answer ? 12 : 0, fontSize: 15 }}>{q.question}</div>
                         {q.answer && (
-                          <div style={{
-                            marginTop: 12, padding: "14px 16px",
-                            background: "rgba(79,192,110,0.06)",
-                            border: "1px solid rgba(79,192,110,0.2)",
-                            borderRadius: 10,
-                          }}>
+                          <div style={{ marginTop: 12, padding: "14px 16px", background: "rgba(79,192,110,0.06)", border: "1px solid rgba(79,192,110,0.2)", borderRadius: 10 }}>
                             <div style={{ fontSize: 11, color: "var(--success)", fontWeight: 700, marginBottom: 6, fontFamily: "var(--font-mono)", letterSpacing: 1 }}>
                               ADMIN REPLY • {q.answeredBy} • {q.answeredAt ? new Date(q.answeredAt).toLocaleDateString("en-IN") : ""}
                             </div>
                             <div style={{ fontSize: 14, color: "var(--text)", lineHeight: 1.7 }}>{q.answer}</div>
                           </div>
                         )}
-
                         {q.status === "open" && !q.answer && (
                           <div style={{ marginTop: 12, fontSize: 12, color: "var(--text3)", fontStyle: "italic" }}>
                             Awaiting admin response. Typically within 24 hours.
@@ -132,17 +114,13 @@ export default function SupportPage() {
               </div>
             )}
 
-            {/* NOTIFICATIONS TAB */}
             {tab === "notifications" && (
               <div>
                 {notifications.length > 0 && unreadCount > 0 && (
                   <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
-                    <button onClick={markAllRead} className="btn btn-secondary" style={{ fontSize: 13, padding: "8px 16px" }}>
-                      ✓ Mark All Read
-                    </button>
+                    <button onClick={markAllRead} className="btn btn-secondary" style={{ fontSize: 13, padding: "8px 16px" }}>✓ Mark All Read</button>
                   </div>
                 )}
-
                 {notifications.length === 0 ? (
                   <div className="card" style={{ textAlign: "center", padding: 60 }}>
                     <div style={{ fontSize: 40, marginBottom: 12 }}>🔕</div>
@@ -151,24 +129,13 @@ export default function SupportPage() {
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                     {notifications.map(n => (
-                      <div key={n.id} style={{
-                        padding: "14px 18px", borderRadius: 12,
-                        background: n.read ? "var(--surface)" : "var(--surface2)",
-                        border: `1px solid ${n.read ? "var(--border)" : "var(--border2)"}`,
-                        display: "flex", alignItems: "flex-start", gap: 12,
-                      }}>
-                        <span style={{ fontSize: 18, flexShrink: 0, marginTop: 2 }}>
-                          {n.type === "success" ? "✅" : n.type === "error" ? "❌" : "ℹ️"}
-                        </span>
+                      <div key={n.id} style={{ padding: "14px 18px", borderRadius: 12, background: n.read ? "var(--surface)" : "var(--surface2)", border: `1px solid ${n.read ? "var(--border)" : "var(--border2)"}`, display: "flex", alignItems: "flex-start", gap: 12 }}>
+                        <span style={{ fontSize: 18, flexShrink: 0, marginTop: 2 }}>{n.type === "success" ? "✅" : n.type === "error" ? "❌" : "ℹ️"}</span>
                         <div style={{ flex: 1 }}>
                           <div style={{ fontSize: 14, color: n.read ? "var(--text2)" : "var(--cream)", lineHeight: 1.6 }}>{n.message}</div>
-                          <div style={{ fontSize: 11, color: "var(--text3)", marginTop: 4, fontFamily: "var(--font-mono)" }}>
-                            {new Date(n.createdAt).toLocaleString("en-IN")}
-                          </div>
+                          <div style={{ fontSize: 11, color: "var(--text3)", marginTop: 4, fontFamily: "var(--font-mono)" }}>{new Date(n.createdAt || n.created_at).toLocaleString("en-IN")}</div>
                         </div>
-                        {!n.read && (
-                          <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--gold)", flexShrink: 0, marginTop: 6 }} />
-                        )}
+                        {!n.read && <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--gold)", flexShrink: 0, marginTop: 6 }} />}
                       </div>
                     ))}
                   </div>
